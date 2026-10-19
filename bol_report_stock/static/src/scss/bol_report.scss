@@ -1,0 +1,23 @@
+.bol-document {
+    .bol-goods th,
+    .bol-goods td:not(:first-child) {
+        white-space: nowrap;
+        overflow-wrap: normal;
+        word-break: normal;
+    }
+
+}
+
+.bol-html-preview {
+    @media screen and (max-width: 600px) {
+        // Handwritten classification columns remain on the PDF, not the phone preview.
+        .bol-goods th:nth-child(n + 4),
+        .bol-goods td:nth-child(n + 4) {
+            display: none;
+        }
+
+        .bol-goods th:first-child { width: 60% !important; }
+        .bol-goods th:nth-child(2) { width: 20% !important; }
+        .bol-goods th:nth-child(3) { width: 20% !important; }
+    }
+}

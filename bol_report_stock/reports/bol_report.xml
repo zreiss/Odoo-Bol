@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <template id="report_bol_document">
+        <t t-set="o" t-value="o.with_context(lang=o._get_report_lang())"/>
+        <t t-set="company" t-value="o.company_id"/>
+        <t t-set="consignee" t-value="o.partner_id or (o.move_ids and o.move_ids[0].partner_id)"/>
+        <t t-set="format_number" t-value="lambda x: int(x) if x == int(x) else x"/>
+        <t t-call="web.external_layout">
+            <div t-attf-class="page bol-document #{'bol-html-preview' if report_type == 'html' else 'bol-pdf'}" style="color: #202020; font-size: 12px;">
+                <h2 style="color: #202020; font-family: Georgia, serif; font-weight: bold; border-bottom: 2px solid #202020; padding-bottom: 8px;">BILL OF LADING</h2>
+                <p t-if="o.state != 'done'" style="font-weight: bold; border: 1px solid #202020; padding: 6px;">
+                    PRELIMINARY — quantities are planned, not confirmation of shipment.
+                </p>
+                <table class="table table-sm table-borderless" style="width: 100%; table-layout: fixed;">
+                    <tr>
+                        <td style="width: 34%;"><strong>BOL No.</strong><div t-field="o.name"/></td>
+                        <td style="width: 33%;"><strong>Shipping date</strong>
+                            <div t-if="o.state == 'done'" t-field="o.date_done" t-options='{"widget": "date"}'/>
+                            <div t-else="" t-field="o.scheduled_date" t-options='{"widget": "date"}'/>
+                        </td>
+                        <td style="width: 33%;"><strong>Order reference</strong><div t-field="o.origin"/></td>
+                    </tr>
+                </table>
+                <table class="table table-sm table-bordered" style="width: 100%; table-layout: fixed; page-break-inside: avoid;">
+                    <tr>
+                        <td style="width: 50%; padding: 10px; vertical-align: top;">
+                            <strong>SHIPPER / SHIP FROM</strong>
+                            <div t-if="o.warehouse_address_id" t-field="o.warehouse_address_id"
+                                 t-options='{"widget": "contact", "fields": ["address", "name", "phone"], "no_marker": True}'/>
+                            <div t-else="" t-field="o.company_id.partner_id"
+                                 t-options='{"widget": "contact", "fields": ["address", "name", "phone"], "no_marker": True}'/>
+                        </td>
+                        <td style="width: 50%; padding: 10px; vertical-align: top;">
+                            <strong>CONSIGNEE / SHIP TO</strong>
+                            <div t-if="consignee" t-out="consignee"
+                                 t-options='{"widget": "contact", "fields": ["address", "name", "phone"], "no_marker": True}'/>
+                            <p t-else="">Not specified — complete before dispatch.</p>
+                        </td>
+                    </tr>
+                </table>
+                <table class="table table-sm table-borderless" style="width: 100%; table-layout: fixed;">
+                    <tr>
+                        <td style="width: 50%;"><strong>Carrier</strong>
+                            <div t-if="o.carrier_id" t-field="o.carrier_id"/>
+                            <div t-else="">____________________________</div>
+                        </td>
+                        <td style="width: 50%;"><strong>PRO / tracking reference</strong>
+                            <div t-if="o.carrier_tracking_ref" t-field="o.carrier_tracking_ref"/>
+                            <div t-else="">____________________________</div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td name="bol_package_count"><strong>Packages / handling units</strong>
+                            <div t-if="o.packages_count" t-out="o.packages_count"/>
+                            <div t-else="">________ (confirm count)</div>
+                        </td>
+                        <td name="bol_weight"><strong>Total shipping weight</strong>
+                            <div t-if="o.shipping_weight or o.weight">
+                                <span t-out="format_number(o.shipping_weight or o.weight)"/>
+                                <span t-field="o.weight_uom_name"/>
+                            </div>
+                            <div t-else="">________ <span t-field="o.weight_uom_name"/> (confirm weight)</div>
+                        </td>
+                    </tr>
+                </table>
+                <p style="font-size: 10px;">Weight is taken from the shipment or calculated from product weights. Verify weight and handling-unit count before signing.</p>
+                <table class="table table-sm table-bordered bol-goods" style="width: 100%; table-layout: fixed;">
+                    <thead style="display: table-header-group;">
+                        <tr style="background-color: #efefef; color: #202020;">
+                            <th style="width: 52%;">Description of goods</th>
+                            <th class="text-end" style="width: 12%;"><t t-if="o.state == 'done'">Shipped</t><t t-else="">Planned</t></th>
+                            <th style="width: 12%;">Unit</th>
+                            <th style="width: 12%;">NMFC</th>
+                            <th style="width: 12%;">Class</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-set="lines" t-value="o.move_ids.filtered(lambda m: m.state != 'cancel' and (m.quantity if o.state == 'done' else m.product_uom_qty) &gt; 0)"/>
+                        <tr t-foreach="lines" t-as="move" name="bol_goods_line" style="page-break-inside: avoid;">
+                            <td style="overflow-wrap: break-word;">
+                                <span t-field="move.product_id"/>
+                                <div t-if="move.description_picking and move.description_picking != move.product_id.name and move._get_report_description_picking()">
+                                    <span t-out="move._get_report_description_picking()" t-options="{'widget': 'text'}"/>
+                                </div>
+                            </td>
+                            <td name="bol_quantity" class="text-end"><span t-out="format_number(move.quantity if o.state == 'done' else move.product_uom_qty)"/></td>
+                            <td><span t-field="move.product_uom"/></td>
+                            <td/>
+                            <td/>
+                        </tr>
+                        <tr t-if="not lines"><td colspan="5">No goods to list. Review the delivery before dispatch.</td></tr>
+                    </tbody>
+                </table>
+                <p style="font-size: 10px;">NMFC and freight class are left blank for the shipper or carrier to complete; they are not inferred from products.</p>
+                <div style="page-break-inside: avoid;">
+                    <p><strong>Freight charges:</strong> Prepaid [ ] &#160; Collect [ ] &#160; Third party [ ]</p>
+                    <p><strong>Handling instructions / exceptions:</strong> __________________________________________</p>
+                    <p>________________________________________________________________________________</p>
+                    <p style="font-size: 10px;">Sign to acknowledge receipt of the goods listed, noting any visible damage, shortages or other exceptions above.</p>
+                    <table class="table table-sm table-borderless" style="width: 100%; table-layout: fixed;">
+                        <tr>
+                            <td style="width: 33%; padding-top: 24px;">_______________________<br/><strong>Shipper signature</strong><br/>Name / date / time</td>
+                            <td style="width: 34%; padding-top: 24px;">_______________________<br/><strong>Carrier / driver signature</strong><br/>Name / date / time</td>
+                            <td style="width: 33%; padding-top: 24px;">_______________________<br/><strong>Receiver signature</strong><br/>Name / date / time</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_bol">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="bol_report_stock.report_bol_document" t-lang="o._get_report_lang()"/>
+            </t>
+        </t>
+    </template>
+
+    <record id="paperformat_bol" model="report.paperformat">
+        <field name="name">Bill of Lading — US Letter</field>
+        <field name="format">Letter</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">55</field>
+        <field name="margin_bottom">18</field>
+        <field name="margin_left">10</field>
+        <field name="margin_right">10</field>
+        <field name="header_spacing">45</field>
+    </record>
+
+    <record id="action_report_bol" model="ir.actions.report">
+        <field name="name">Bill of Lading</field>
+        <field name="model">stock.picking</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">bol_report_stock.report_bol</field>
+        <field name="report_file">bol_report_stock.report_bol</field>
+        <field name="print_report_name">'Bill of Lading - %s' % (object.name)</field>
+        <field name="binding_model_id" ref="stock.model_stock_picking"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_bol"/>
+        <field name="group_ids" eval="[Command.link(ref('stock.group_stock_user'))]"/>
+    </record>
+</odoo>
