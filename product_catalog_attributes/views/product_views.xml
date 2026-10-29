@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="product_view_search_catalog_attributes" model="ir.ui.view">
+        <field name="name">product.search.catalog.attributes</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="product.product_view_search_catalog"/>
+        <field name="arch" type="xml">
+            <xpath expr="//searchpanel" position="inside">
+                <field name="catalog_attribute_value_ids" string="Attributes"
+                       icon="fa-sliders" select="multi" groupby="attribute_id"
+                       enable_counters="1" limit="0"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
