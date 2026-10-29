@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="product_catalog_attributes.Status">
+        <div class="o_catalog_attributes_actions mb-2">
+            <button t-if="state.selected" type="button" class="btn btn-link p-0" t-on-click="clear">
+                Clear attributes
+            </button>
+            <p t-if="state.loading" role="status" class="small text-body mb-1">
+                Loading attributes…
+            </p>
+            <div t-elif="state.error" role="alert" class="small my-2">
+                Could not load attributes.
+                <button type="button" class="btn btn-link p-0 ms-1" t-on-click="retry">Retry</button>
+            </div>
+            <p t-elif="state.empty" class="small text-body mb-1">
+                No attributes for these products. Try another search or category.
+            </p>
+        </div>
+    </t>
+    <t t-name="product_catalog_attributes.SearchPanelSection"
+       t-inherit="web.SearchPanel.Section" t-inherit-mode="extension">
+        <xpath expr="//div[@t-if='section.errorMsg']" position="before">
+            <CatalogAttributeStatus t-if="section.fieldName === 'catalog_attribute_value_ids'"
+                                    sectionId="section.id"/>
+        </xpath>
+    </t>
+</templates>
