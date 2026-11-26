@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_epa" model="ir.ui.view">
+        <field name="name">res.partner.form.epa.account</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/notebook" position="before">
+                <widget name="ehs_epa_summary" groups="ehs_epa_refrigerant.group_epa_user"/>
+            </xpath>
+            <xpath expr="//page[@name='sales_purchases']" position="after">
+                <page name="epa_608" string="EPA 608" groups="ehs_epa_refrigerant.group_epa_user">
+                    <widget name="ehs_epa_account"/>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

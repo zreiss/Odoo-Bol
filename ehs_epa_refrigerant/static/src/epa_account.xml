@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+    <t t-name="ehs_epa_refrigerant.Summary">
+        <section class="ehs-epa-summary py-2" aria-label="EPA account status" aria-live="polite">
+            <span class="fw-bold me-2">EPA 608</span>
+            <span t-if="state.loading">Checking account file…</span>
+            <span t-elif="state.data"><strong t-esc="state.data.status_label"/> · <t t-esc="state.data.account_name"/></span>
+            <span t-elif="!props.record.resId">Save the customer to add EPA information.</span>
+            <span t-else="">Account file unavailable. Open EPA 608 to retry.</span>
+        </section>
+    </t>
+    <t t-name="ehs_epa_refrigerant.Account">
+        <section class="ehs-epa-account" aria-label="EPA certification file">
+            <p class="alert alert-info mb-3">Account-file setup only: refrigerant sales restrictions and the sales log are not active in this version.</p>
+            <p t-if="!props.record.resId">Save this customer first, then open EPA 608 to enter the account license.</p>
+            <p t-elif="state.loading" role="status">Loading the account certification file…</p>
+            <t t-elif="state.data">
+                <div class="mb-3">
+                    <h3 class="mb-1">EPA 608 account file</h3>
+                    <p class="mb-1"><strong t-esc="state.data.status_label"/> · <t t-esc="state.data.account_name"/></p>
+                    <p class="mb-1">Operating company: <t t-esc="state.data.company_name"/></p>
+                    <p t-if="state.data.account_id !== props.record.resId" class="mb-1">This contact uses the company account’s license. A separate personal license is not required.</p>
+                    <p t-if="state.data.status === 'verified'" class="mb-0">Reviewed by <t t-esc="state.data.verified_by"/> on <t t-esc="state.data.verified_at"/> UTC.</p>
+                    <p t-if="state.data.change_reason" class="mb-0">Reason: <t t-esc="state.data.change_reason"/></p>
+                </div>
+                <fieldset t-att-disabled="frozen || state.busy">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" t-att-for="'epa-declaration-' + props.record.resId">Has EPA 608 certification?</label>
+                        <select class="form-select ehs-epa-declaration" t-att-id="'epa-declaration-' + props.record.resId" t-att-value="state.values.declaration" t-on-change="(ev) => this.setValue('declaration', ev.target.value)">
+                            <option value="">Not recorded</option><option value="yes">Yes</option><option value="no">No</option>
+                        </select>
+                    </div>
+                    <t t-if="state.values.declaration === 'yes'">
+                        <fieldset class="mb-3">
+                            <legend class="form-label fw-bold fs-6">Certification type</legend>
+                            <div class="d-flex flex-wrap gap-3">
+                                <label t-foreach="['i', 'ii', 'iii', 'universal']" t-as="kind" t-key="kind" class="form-check-label">
+                                    <input type="radio" class="form-check-input me-1" t-att-name="'epa-type-' + props.record.resId" t-att-value="kind" t-att-checked="state.values.credential_type === kind" t-on-change="() => this.setValue('credential_type', kind)"/>
+                                    <t t-esc="kind === 'universal' ? 'Universal' : kind.toUpperCase()"/>
+                                </label>
+                            </div>
+                        </fieldset>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold" t-att-for="'epa-number-' + props.record.resId">License number</label>
+                            <input class="form-control ehs-epa-number" type="text" t-att-id="'epa-number-' + props.record.resId" t-att-value="state.values.number" t-on-input="(ev) => this.setValue('number', ev.target.value)"/>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold" t-att-for="'epa-technician-' + props.record.resId">Certified technician name</label>
+                            <input class="form-control ehs-epa-technician" type="text" t-att-id="'epa-technician-' + props.record.resId" t-att-value="state.values.technician_name" t-on-input="(ev) => this.setValue('technician_name', ev.target.value)"/>
+                        </div>
+                        <div t-foreach="['certificate_front', 'certificate_back', 'employer_proof']" t-as="fileField" t-key="fileField" class="mb-3" t-if="fileField !== 'employer_proof' || state.data.is_company">
+                            <p class="form-label fw-bold mb-1"><t t-esc="fileField === 'certificate_front' ? 'License photo or PDF' : fileField === 'certificate_back' ? 'License back (optional)' : 'Employer evidence'"/></p>
+                            <p t-if="fileName(fileField)" class="ehs-epa-file-name mb-1">
+                                <a t-if="state.data.files[fileField]?.present &amp;&amp; !state.uploads[fileField]" t-att-href="'/web/content?model=ehs.epa.credential&amp;id=' + state.data.credential_id + '&amp;field=' + fileField + '&amp;filename_field=' + fileField + '_name&amp;download=true'" t-esc="fileName(fileField)"/>
+                                <span t-else="" t-esc="fileName(fileField)"/>
+                            </p>
+                            <p t-else="" class="mb-1">No file on record</p>
+                            <FileUploader t-if="!frozen" acceptedFileExtensions="'.jpg,.jpeg,.png,.pdf'" allowedMIMETypes="'image/jpeg,image/png,application/pdf'" onUploaded="(file) => this.upload(fileField, file)">
+                                <button type="button" class="btn btn-outline-secondary" t-att-disabled="state.busy">Choose file</button>
+                            </FileUploader>
+                        </div>
+                        <p t-if="state.data.is_company" class="mb-3">Employer evidence must confirm that this company employs the named certified technician. Buyers on this company account do not each need their own certificate.</p>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold" t-att-for="'epa-buyers-' + props.record.resId">Authorized buyers (optional)</label>
+                            <textarea class="form-control" t-att-id="'epa-buyers-' + props.record.resId" t-att-value="state.values.authorized_buyers" t-on-input="(ev) => this.setValue('authorized_buyers', ev.target.value)" rows="2"/>
+                        </div>
+                        <label class="d-flex align-items-start gap-2 mb-3">
+                            <input class="form-check-input ehs-epa-review" type="checkbox" t-att-checked="state.values.scope_reviewed" t-on-change="(ev) => this.setValue('scope_reviewed', ev.target.checked)"/>
+                            <span>I checked the readable proof, technician identity, certification scope for the intended equipment, and employer evidence when applicable.</span>
+                        </label>
+                    </t>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" t-att-for="'epa-notes-' + props.record.resId">Internal notes</label>
+                        <textarea class="form-control" t-att-id="'epa-notes-' + props.record.resId" t-att-value="state.values.notes" t-on-input="(ev) => this.setValue('notes', ev.target.value)" rows="2"/>
+                    </div>
+                </fieldset>
+                <div t-if="!frozen" class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-primary ehs-epa-verify" t-on-click="() => this.persist(true)" t-att-disabled="state.busy || state.values.declaration !== 'yes'">Save and verify account</button>
+                    <button type="button" class="btn btn-secondary ehs-epa-save" t-on-click="() => this.persist(false)" t-att-disabled="state.busy">Save incomplete file</button>
+                    <span t-if="state.busy" role="status">Saving account file…</span>
+                </div>
+                <div t-if="frozen &amp;&amp; state.data.can_manage" class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-secondary ehs-epa-replace" t-on-click="() => this.change('replace')">Replace account file</button>
+                    <button t-if="state.data.status === 'verified'" type="button" class="btn btn-outline-secondary ehs-epa-withdraw" t-on-click="() => this.change('withdraw')">Withdraw eligibility</button>
+                </div>
+                <p class="mt-3 mb-0">Section 608 credentials do not expire. Keep original evidence and superseded account files; never replace old proof in place.</p>
+                <p class="small mb-0">JPG, PNG, or PDF · maximum 10 MB per file · internal access only</p>
+            </t>
+            <div t-if="state.error" class="alert alert-danger mt-3 mb-0" role="alert"><p class="mb-2" t-esc="state.error"/><button type="button" class="btn btn-outline-secondary" t-if="!state.data" t-on-click="load">Retry</button></div>
+        </section>
+    </t>
+    <t t-name="ehs_epa_refrigerant.ChangeDialog">
+        <Dialog title="title" size="'md'">
+            <p>The original certification and evidence will be retained. A replacement starts a new file that must be reviewed again.</p>
+            <label for="epa-change-reason" class="form-label">Reason</label>
+            <textarea id="epa-change-reason" class="form-control" t-model="state.reason" rows="3"/>
+            <p t-if="state.error" class="alert alert-danger mt-2" t-esc="state.error" role="alert"/>
+            <t t-set-slot="footer">
+                <button type="button" class="btn btn-primary" t-on-click="confirm" t-att-disabled="state.busy">Confirm</button>
+                <button type="button" class="btn btn-secondary" t-on-click="props.close" t-att-disabled="state.busy">Cancel</button>
+            </t>
+        </Dialog>
+    </t>
+</templates>

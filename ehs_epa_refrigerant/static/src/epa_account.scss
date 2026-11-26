@@ -1,0 +1,15 @@
+.ehs-epa-account {
+    max-width: 52rem;
+    color: var(--body-color, #212529);
+
+    .form-label, legend { color: inherit; }
+    .ehs-epa-file-name { overflow-wrap: anywhere; }
+    .form-check-input { flex-shrink: 0; }
+    [role="alert"] { white-space: pre-line; }
+    input, select, textarea { max-width: 100%; }
+}
+.ehs-epa-summary {
+    border-bottom: 1px solid var(--border-color, #dee2e6);
+    margin-bottom: 0.75rem;
+    overflow-wrap: anywhere;
+}
